@@ -1,0 +1,899 @@
+{
+  "name": "TA Doubt Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "TA Doubt Assistant",
+        "formDescription": "Submit your doubt here. Make sure to describe your question clearly so we can give you the best answer possible.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Roll Number",
+              "fieldType": "number",
+              "placeholder": "10xxx",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Subject",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "HTML"
+                  },
+                  {
+                    "option": "CSS"
+                  },
+                  {
+                    "option": "Javascript"
+                  },
+                  {
+                    "option": "REACT js"
+                  },
+                  {
+                    "option": "Other"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Doubt",
+              "fieldType": "textarea",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Related to previous doubt",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes"
+                  },
+                  {
+                    "option": "No"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Previous Doubt Description",
+              "fieldType": "textarea",
+              "placeholder": "Optional: Only fill this if you selected 'Yes' in the previous field."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -1248,
+        512
+      ],
+      "id": "c213135e-bf31-4659-9a40-afd35e5422f2",
+      "name": "On form submission",
+      "webhookId": "56c0e064-0895-4d4c-a242-b7865da0e0e1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a7d5165a-4bfa-47a5-9412-d4eb50851a80",
+              "name": "Session Id",
+              "value": "={{ $json['Roll Number'] + '_' + $now.toISO()}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -800,
+        608
+      ],
+      "id": "a532e8d1-fe6d-46e6-8b79-f694b004fc7d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "115cec97-4722-4557-8a6b-7db55d1f24ed",
+              "leftValue": "={{ $json['Related to previous doubt'] }}",
+              "rightValue": "Yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1024,
+        512
+      ],
+      "id": "19ca932b-cddb-4270-8f92-a707fd9fc27c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=A student described their previous doubt as: \n{{ $('On form submission').item.json.Doubt }}\n\nHere are their previous doubts:\n{{ $json.formattedDoubts }}",
+        "options": {
+          "systemMessage": "You are a precise data extraction assistant. Compare the student's current description with the provided previous doubts and find the most relevant match. Return ONLY the session ID string (e.g., 10001_YYYY-MM-DDTHH:MM:SS) of the most relevant doubt. Do not include markdown, explanations, or extra text."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -352,
+        416
+      ],
+      "id": "591a26fa-08a6-4dc4-aea6-1763363b2e4e",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        640
+      ],
+      "id": "d3d38d6c-202a-4ca5-aa8b-bef22a238257",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "Bjn4JOHSaC1ZmW05",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "TlZEx62QTl4iucuw",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/TlZEx62QTl4iucuw",
+          "cachedResultName": "Doubt Handler"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Doubt": "={{ $('If').item.json.Doubt }}",
+            "Email": "={{ $('On form submission').item.json.Email }}",
+            "Name": "={{ $('On form submission').item.json.Name }}",
+            "Roll Number": "={{ $('On form submission').item.json['Roll Number'] }}",
+            "SessionID": "={{ $json['Session Id'] }}",
+            "Subject": "={{ $('If').item.json.Subject }}",
+            "FollowUpCount": 0,
+            "IsFollowUp": "={{ $('If').item.json['Related to previous doubt'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Roll Number",
+              "displayName": "Roll Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "SessionID",
+              "displayName": "SessionID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Doubt",
+              "displayName": "Doubt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "FollowUpCount",
+              "displayName": "FollowUpCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "IsFollowUp",
+              "displayName": "IsFollowUp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -576,
+        608
+      ],
+      "id": "b4d867b3-f3d8-4cc4-a716-c8bf13685c09",
+      "name": "Call 'Doubt Handler'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "TlZEx62QTl4iucuw",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/TlZEx62QTl4iucuw",
+          "cachedResultName": "Doubt Handler"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Doubt": "={{ $('If').item.json.Doubt }}",
+            "Email": "={{ $('On form submission').item.json.Email }}",
+            "Name": "={{ $('On form submission').item.json.Name }}",
+            "Roll Number": "={{ $('On form submission').item.json['Roll Number'] }}",
+            "SessionID": "={{ $json.SessionId }}",
+            "Subject": "={{ $('If').item.json.Subject }}",
+            "FollowUpCount": "={{ $('Count Increment').item.json.Follow_Up_Count }}",
+            "IsFollowUp": "={{ $('On form submission').item.json['Related to previous doubt'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Roll Number",
+              "displayName": "Roll Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "SessionID",
+              "displayName": "SessionID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Doubt",
+              "displayName": "Doubt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "FollowUpCount",
+              "displayName": "FollowUpCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "IsFollowUp",
+              "displayName": "IsFollowUp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        416
+      ],
+      "id": "d50ff836-9657-49a0-ab19-7fecd910d536",
+      "name": "Call 'Doubt Handler'1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1eUnUnLnYjJ4xTjry6Uhg0WFHvj_isAI7rCm5uEjorfg/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1eUnUnLnYjJ4xTjry6Uhg0WFHvj_isAI7rCm5uEjorfg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "SessionId": "={{ $('Rows on Session Id').item.json.SessionId }}",
+            "Roll_Number": "={{ $('Rows on Session Id').item.json.Roll_Number }}",
+            "Doubt": "={{ $('Rows on Session Id').item.json.Doubt }}",
+            "Doubt_Category": "={{ $('Rows on Session Id').item.json.Doubt_Category }}",
+            "Response_Type": "={{ $('Rows on Session Id').item.json.Response_Type }}",
+            "Status": "={{ $('Rows on Session Id').item.json.Status }}",
+            "Created_At": "={{ $now.format('yyyy/MM/dd HH:mm') }}",
+            "Follow_Up_Count": "={{ $json.Follow_Up_Count }}"
+          },
+          "matchingColumns": [
+            "SessionId"
+          ],
+          "schema": [
+            {
+              "id": "Roll_Number",
+              "displayName": "Roll_Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "SessionId",
+              "displayName": "SessionId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Doubt",
+              "displayName": "Doubt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Doubt_Category",
+              "displayName": "Doubt_Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Response_Type",
+              "displayName": "Response_Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created_At",
+              "displayName": "Created_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Follow_Up_Count",
+              "displayName": "Follow_Up_Count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        416
+      ],
+      "id": "4f626fec-d67e-4d18-bbf4-4cced1c187e0",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PNK0TIv50oIhUy6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        512
+      ],
+      "id": "ca6e53b6-f009-4676-96de-b395278d4f11",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "fromEmail": "prabhatjha2022@gmail.com",
+        "toEmail": "prabhatjha2022@gmail.com",
+        "subject": "URGENT MENTEE FOLLLOW-UP",
+        "emailFormat": "text",
+        "text": "=Roll Number:- {{ $('Rows on Roll Number').item.json.Roll_Number }}\nSubject:- {{ $('Rows on Roll Number').item.json.Doubt_Category }} \nDoubt:- {{ $('Rows on Roll Number').item.json.Doubt }}\nFollow Up Count:- {{ $('Count Increment').item.json.Follow_Up_Count }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1120,
+        320
+      ],
+      "id": "ce12e9d4-df85-426e-8e4c-5deead07e28f",
+      "name": "Send an Email",
+      "webhookId": "2aa2970d-5a88-4016-a2bf-12ca10412439",
+      "credentials": {
+        "smtp": {
+          "id": "7Y1vLmEDjTVvboST",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1eUnUnLnYjJ4xTjry6Uhg0WFHvj_isAI7rCm5uEjorfg/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1eUnUnLnYjJ4xTjry6Uhg0WFHvj_isAI7rCm5uEjorfg/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Roll_Number",
+              "lookupValue": "={{ $json['Roll Number'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -800,
+        416
+      ],
+      "id": "14432aea-809b-4685-8971-26a8588e1645",
+      "name": "Rows on Roll Number",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PNK0TIv50oIhUy6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nconst formattedDoubts = rows.map((row, index) => {\n    return `${index + 1}. Session: ${row.json.SessionId} | Doubt: ${row.json.Doubt}`;\n}).join('\\n');\n\nreturn [{\n    json: {\n        formattedDoubts: formattedDoubts,\n        description: $('On form submission').item.json['Description of previous doubt']\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        416
+      ],
+      "id": "ba5a3e8c-d3a7-4d7d-a47d-a653a70d9961",
+      "name": "Formatting Data"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1eUnUnLnYjJ4xTjry6Uhg0WFHvj_isAI7rCm5uEjorfg/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1eUnUnLnYjJ4xTjry6Uhg0WFHvj_isAI7rCm5uEjorfg/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Session_ID",
+              "lookupValue": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        416
+      ],
+      "id": "28c15159-39dc-4d14-a2aa-6ecc1b694d16",
+      "name": "Rows on Session Id",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PNK0TIv50oIhUy6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6590f346-3721-4aa1-9371-73becd853ce6",
+              "name": "Follow_Up_Count",
+              "value": "={{ $json.Follow_Up_Count + 1}}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        416
+      ],
+      "id": "e4c56bcb-26fa-45e5-97b7-d28eb0804775",
+      "name": "Count Increment"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e540efe6-f33d-4826-bef4-5b990eb67cd9",
+              "leftValue": "={{ $('Count Increment').item.json.Follow_Up_Count }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        416
+      ],
+      "id": "cadd2da4-68cd-416f-ac8d-d25ffb394237",
+      "name": "Flagging"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Call 'Doubt Handler'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Rows on Roll Number",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Rows on Session Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Call 'Doubt Handler'1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Doubt Handler'1": {
+      "main": [
+        [
+          {
+            "node": "Flagging",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rows on Roll Number": {
+      "main": [
+        [
+          {
+            "node": "Formatting Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatting Data": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rows on Session Id": {
+      "main": [
+        [
+          {
+            "node": "Count Increment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Increment": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flagging": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7e400a05-2407-486e-85b1-61a6da6dc42c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9301c72e1eb2f309c10afde3ddf50a9ca258c8bb08bc5512c699c9e083fc5277"
+  },
+  "id": "ptQnLHYgnjBObekq",
+  "tags": []
+}

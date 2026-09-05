@@ -1,0 +1,930 @@
+{
+  "name": "Doubt Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "modelName": "sentence-transformers/all-MiniLM-L6-v2",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        1344
+      ],
+      "id": "677d3c73-cee7-4c3c-a902-c50a0885cb06",
+      "name": "Embeddings HuggingFace Inference1",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "ddVywur43JaY5R0x",
+          "name": "Hugging Face account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to retrieve information about HTML, CSS, and general course doubts from the knowledge base to help answer student questions.",
+        "memoryKey": {
+          "__rl": true,
+          "value": "vector_store_key",
+          "mode": "list",
+          "cachedResultName": "vector_store_key"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        -272,
+        1136
+      ],
+      "id": "bc0663d6-f04d-43bf-b281-6115046bffc9",
+      "name": "Simple Vector Store1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        1136
+      ],
+      "id": "24dbc734-3fc8-4dfb-9112-6c7357cfe596",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "Bjn4JOHSaC1ZmW05",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.SessionID }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -400,
+        1136
+      ],
+      "id": "e13494a4-925c-400a-91ee-85bc60e4c4f3",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "fromEmail": "prabhatjha2022@gmail.com",
+        "toEmail": "={{ $('When Executed by Another Workflow').item.json.Email }}",
+        "subject": "Reply to your doubt",
+        "emailFormat": "text",
+        "text": "=Your Doubt:-  {{ $('When Executed by Another Workflow').item.json.Doubt }}\n\nResponse:- {{ $('AI Agent').item.json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        768,
+        1056
+      ],
+      "id": "85186247-ff26-4d04-90de-a3308cbf7bf5",
+      "name": "Send AI Response",
+      "webhookId": "4596f289-80d9-472d-99fe-11726fb2c6a5",
+      "credentials": {
+        "smtp": {
+          "id": "7Y1vLmEDjTVvboST",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=The doubt:- {{ $json.Doubt }}",
+        "options": {
+          "systemMessage": "You are a TA Doubt Assistant for a web development course.\nYou help students with doubts about HTML, CSS, JavaScript and React.\n\nSTRICT RULES:\n1. ONLY use the knowledge base tool to answer questions.\n2. When searching the knowledge base, always use the student's complete doubt as the search query. Do not summarize or extract keywords from it.\n3. If the knowledge base has a relevant answer, use it as the primary response. You may add 1-2 sentences to help the student understand better, but do not go beyond that.\n4. If the knowledge base does NOT have a relevant answer, respond with EXACTLY this: \"I don't have an answer for this yet. Your doubt has been flagged for the TA to review.\" Do not add anything else.\n5. NEVER answer entirely from your own knowledge without a knowledge base result.\n6. Never start your response with phrases like \"Based on the course materials\", \"According to the knowledge base\", \"Based on the provided information\" or any similar preamble. Jump directly into the answer."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -464,
+        912
+      ],
+      "id": "4a83bb6b-797f-403f-badb-04a70df4b9da",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b75c1b73-5c1e-45ec-b644-00b0644169fe",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "flagged",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        96,
+        912
+      ],
+      "id": "24599645-c49e-453e-b380-dfddef60de47",
+      "name": "Flagged or not"
+    },
+    {
+      "parameters": {
+        "fromEmail": "prabhatjha2022@gmail.com",
+        "toEmail": "={{ $('When Executed by Another Workflow').item.json.Email }}",
+        "subject": "Reply to your doubt",
+        "emailFormat": "text",
+        "text": "=Your Doubt:-  {{ $('When Executed by Another Workflow').item.json.Doubt }}\n\nResponse:- {{ $('AI Agent1').item.json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1344,
+        768
+      ],
+      "id": "1b8bc3d8-239b-43fb-a574-a4ff31721623",
+      "name": "Send Manual Response",
+      "webhookId": "9fa22a50-50f4-4354-b70d-14d19f20b93d",
+      "credentials": {
+        "smtp": {
+          "id": "7Y1vLmEDjTVvboST",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "fromEmail": "prabhatjha2022@gmail.com",
+        "toEmail": "prabhatjha2022@gmail.com",
+        "subject": "=Flagged Doubt {{ $('When Executed by Another Workflow').item.json.SessionID }}",
+        "message": "=Name:-  {{ $('When Executed by Another Workflow').item.json.Name }}\nRoll Number:- {{ $('When Executed by Another Workflow').item.json['Roll Number'] }}\nDoubt:- {{ $('When Executed by Another Workflow').item.json.Doubt }}\nAnswer:- {{ $('AI Agent').item.json.output }}",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Reply",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        768,
+        768
+      ],
+      "id": "7f61e862-dfa8-4bd6-a83a-2a762e3b75e2",
+      "name": "Flagging Doubt",
+      "webhookId": "e3107d64-9f22-472b-abcb-cbb6cfabffec",
+      "credentials": {
+        "smtp": {
+          "id": "7Y1vLmEDjTVvboST",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "Name"
+            },
+            {
+              "name": "Roll Number",
+              "type": "number"
+            },
+            {
+              "name": "Email"
+            },
+            {
+              "name": "SessionID"
+            },
+            {
+              "name": "Doubt"
+            },
+            {
+              "name": "Subject"
+            },
+            {
+              "name": "FollowUpCount",
+              "type": "number"
+            },
+            {
+              "name": "IsFollowUp"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -752,
+        912
+      ],
+      "id": "dc5111ea-e97e-426d-99a9-bdf780084fbf",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1eUnUnLnYjJ4xTjry6Uhg0WFHvj_isAI7rCm5uEjorfg/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1eUnUnLnYjJ4xTjry6Uhg0WFHvj_isAI7rCm5uEjorfg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Roll_Number": "={{ $('When Executed by Another Workflow').item.json['Roll Number'] }}",
+            "Doubt": "={{ $('When Executed by Another Workflow').item.json.Doubt }}",
+            "Doubt_Category": "={{ $('When Executed by Another Workflow').item.json.Subject }}",
+            "Response_Type": "Flagged",
+            "Status": "Open",
+            "Created_At": "={{ $now.format('yyyy-MM-dd') }}",
+            "Follow_Up_Count": "={{ $('When Executed by Another Workflow').item.json.FollowUpCount }}",
+            "Session_ID": "={{ $('When Executed by Another Workflow').item.json.SessionID }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Roll_Number",
+              "displayName": "Roll_Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Session_ID",
+              "displayName": "Session_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Doubt",
+              "displayName": "Doubt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Doubt_Category",
+              "displayName": "Doubt_Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Response_Type",
+              "displayName": "Response_Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created_At",
+              "displayName": "Created_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Follow_Up_Count",
+              "displayName": "Follow_Up_Count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        544,
+        848
+      ],
+      "id": "b77c6292-685d-4b38-a301-9a653f6d5e7a",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PNK0TIv50oIhUy6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1eUnUnLnYjJ4xTjry6Uhg0WFHvj_isAI7rCm5uEjorfg/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1eUnUnLnYjJ4xTjry6Uhg0WFHvj_isAI7rCm5uEjorfg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Roll_Number": "={{ $('When Executed by Another Workflow').item.json['Roll Number'] }}",
+            "Doubt": "={{ $('When Executed by Another Workflow').item.json.Doubt }}",
+            "Response_Type": "Auto",
+            "Status": "Open",
+            "Created_At": "={{ $now.format('yyyy-MM-dd') }}",
+            "Doubt_Category": "={{ $('When Executed by Another Workflow').item.json.Subject }}",
+            "Follow_Up_Count": "={{ $('When Executed by Another Workflow').item.json.FollowUpCount }}",
+            "Session_ID": "={{ $('When Executed by Another Workflow').item.json.SessionID }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Roll_Number",
+              "displayName": "Roll_Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Session_ID",
+              "displayName": "Session_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Doubt",
+              "displayName": "Doubt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Doubt_Category",
+              "displayName": "Doubt_Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Response_Type",
+              "displayName": "Response_Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created_At",
+              "displayName": "Created_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Follow_Up_Count",
+              "displayName": "Follow_Up_Count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        544,
+        1136
+      ],
+      "id": "eefea327-2c39-4762-85b9-6924b4cfed46",
+      "name": "Append row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PNK0TIv50oIhUy6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "vNEoWRXlkoz7iQr5",
+          "mode": "list"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1792,
+        768
+      ],
+      "name": "Call Indexing",
+      "id": "befe7e0b-c09f-474c-af4c-ff890af7365e"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1nND78uhFIiIjAH3iqxGeeO1CLSEVK2stTiyM7_MZCD4/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "D1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nND78uhFIiIjAH3iqxGeeO1CLSEVK2stTiyM7_MZCD4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Answer": "={{ $('Flagging Doubt').item.json.data.Reply }}",
+            "Question": "={{ $('When Executed by Another Workflow').item.json.Doubt }}",
+            "Category": "={{ $('When Executed by Another Workflow').item.json.Subject }}",
+            "Date Added": "={{ $now.format('yyyy-MM-dd') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Question",
+              "displayName": "Question",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Answer",
+              "displayName": "Answer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date Added",
+              "displayName": "Date Added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1568,
+        768
+      ],
+      "id": "2e66bae1-6316-4c33-b994-0c22941cf2c1",
+      "name": "Append row in sheet2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PNK0TIv50oIhUy6s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2b959d89-dcac-4189-8231-dedbaa99a406",
+              "leftValue": "={{ $('When Executed by Another Workflow').item.json.IsFollowUp }}",
+              "rightValue": "Yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        320,
+        768
+      ],
+      "id": "dd37cd5a-22e8-4e4a-9915-e8e5999a6c95",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "33eabe2a-1643-4361-b079-a81a040011ea",
+              "leftValue": "={{ $('When Executed by Another Workflow').item.json.IsFollowUp }}",
+              "rightValue": "Yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        320,
+        1056
+      ],
+      "id": "2334b8ef-3a4e-4090-afe2-12252848cb7a",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Format the following answer properly for a response.\nAdd proper line breaks, structure code blocks clearly, \nand make it readable. Do not change the content, only format it.\nThe formatiing shouldn't be something like adding astrisk sign to denote code with random spaces and enters.\nThe formatting should look neat.\n\nAnswer: {{ $json.data.Reply }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        992,
+        768
+      ],
+      "id": "807c759d-6e9a-479d-a807-b9ce3868e749",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        992
+      ],
+      "id": "bc2f2cb1-6532-4e8d-8a8f-2ae49c488a42",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "Bjn4JOHSaC1ZmW05",
+          "name": "Groq account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Vector Store1": {
+      "ai_vectorStore": [
+        []
+      ],
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HuggingFace Inference1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Simple Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Flagged or not",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flagging Doubt": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flagged or not": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Flagging Doubt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Send AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Manual Response": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet2": {
+      "main": [
+        [
+          {
+            "node": "Call Indexing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Flagging Doubt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Send Manual Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a1ff5e0a-ca4d-4407-8ff3-ddc638ba334f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9301c72e1eb2f309c10afde3ddf50a9ca258c8bb08bc5512c699c9e083fc5277"
+  },
+  "id": "TlZEx62QTl4iucuw",
+  "tags": []
+}
